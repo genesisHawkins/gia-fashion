@@ -1,0 +1,157 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Fredoka:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg-primary: #F8F3FF;
+  --bg-secondary: #FFF5F8;
+  --purple: #C084FC;
+  --pink: #F472B6;
+  --blue: #93C5FD;
+  --yellow: #FDE047;
+  --text-dark: #1F2937;
+  --text-light: #6B7280;
+}
+
+body {
+  background: linear-gradient(135deg, #F8F3FF 0%, #FFF5F8 50%, #F0F9FF 100%);
+  color: var(--text-dark);
+  font-family: 'Poppins', sans-serif;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Y2K Background Pattern */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 20% 50%, rgba(192, 132, 252, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(244, 114, 182, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 40% 20%, rgba(147, 197, 253, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+h1, h2, h3 {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* Y2K Buttons */
+.btn-primary {
+  @apply bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 text-white px-6 py-3 rounded-full font-semibold hover:shadow-2xl hover:shadow-purple-300/50 transition-all duration-300 transform hover:scale-105;
+}
+
+.btn-secondary {
+  @apply bg-white text-purple-600 px-6 py-3 rounded-full font-semibold border-2 border-purple-300 hover:bg-purple-50 hover:shadow-xl transition-all duration-300;
+}
+
+/* Chat Bubbles */
+.chat-bubble-user {
+  @apply bg-gradient-to-r from-purple-400 to-pink-400 text-white px-5 py-3 rounded-3xl rounded-br-md shadow-lg max-w-[80%] ml-auto;
+}
+
+.chat-bubble-ai {
+  @apply bg-white text-gray-800 px-5 py-3 rounded-3xl rounded-bl-md shadow-lg max-w-[80%] border-2 border-purple-200;
+}
+
+/* Y2K Cards */
+.card-y2k {
+  @apply bg-white/80 backdrop-blur-md rounded-3xl shadow-xl border-2 border-purple-200/50 relative overflow-hidden;
+}
+
+.card-y2k::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(192, 132, 252, 0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out;
+}
+
+/* Y2K Glassmorphism */
+.glass {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 2px solid rgba(192, 132, 252, 0.2);
+}
+
+/* Y2K Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #C084FC 0%, #F472B6 50%, #93C5FD 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Emoji/Sticker style */
+.emoji-big {
+  font-size: 3rem;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+/* Pulse animation for AI thinking */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(192, 132, 252, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(244, 114, 182, 0.8);
+  }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Hide scrollbar for suggestion chips */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

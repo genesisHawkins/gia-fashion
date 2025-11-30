@@ -1,0 +1,29 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" rx="115" fill="#2B2B2B"/>
+  
+  <!-- Gradient Circle -->
+  <circle cx="256" cy="256" r="180" fill="url(#gradient)"/>
+  
+  <!-- Letter G -->
+  <text x="256" y="320" font-family="Arial, sans-serif" font-size="240" font-weight="bold" fill="white" text-anchor="middle">G</text>
+  
+  <!-- Sparkle 1 -->
+  <path d="M380 150 L390 160 L380 170 L370 160 Z" fill="#E8DCC4"/>
+  <path d="M385 145 L395 155 L385 165 L375 155 Z" fill="#C9A961"/>
+  
+  <!-- Sparkle 2 -->
+  <path d="M140 360 L150 370 L140 380 L130 370 Z" fill="#E8DCC4"/>
+  <path d="M145 355 L155 365 L145 375 L135 365 Z" fill="#C9A961"/>
+  
+  <!-- Sparkle 3 -->
+  <path d="M420 320 L428 328 L420 336 L412 328 Z" fill="#E8DCC4"/>
+  
+  <!-- Gradient Definition -->
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#C9A961;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E8DCC4;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>
