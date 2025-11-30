@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
     for (const pattern of clothingPatterns) {
       const matches = Array.from(analysisText.matchAll(pattern))
       if (matches.length > 0) {
-        const match = matches[0] // Take only the first match
+        const match = matches[0] as RegExpMatchArray // Take only the first match
         
         // For "swap X for Y" pattern, use the Y (what to get)
         if (match[2]) {
