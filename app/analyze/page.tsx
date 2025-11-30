@@ -338,10 +338,33 @@ export default function AnalyzePage() {
       }
 
       // Add Gia's response with score and shopping query
+      // CRITICAL: Ensure we only show the text, not JSON
+      let cleanContent = analysis.chat_response || 'Analysis completed'
+      
+      // Emergency cleanup: if the content still looks like JSON, extract just the text
+      if (cleanContent.includes('"score"') || cleanContent.includes('"chat_response"')) {
+        console.warn('⚠️ Frontend detected JSON in response, cleaning...')
+        // Try to extract just the chat_response value
+        const match = cleanContent.match(/"chat_response"\s*:\s*"([^"]+)"/)
+        if (match && match[1]) {
+          cleanContent = match[1]
+            .replace(/\\n/g, '\n')
+            .replace(/\\"/g, '"')
+            .replace(/\\\\/g, '\\')
+        } else {
+          // Last resort: remove JSON artifacts
+          cleanContent = cleanContent
+            .replace(/^\{.*?"chat_response"\s*:\s*"/, '')
+            .replace(/",?\s*"suggested_item_search".*\}$/, '')
+            .replace(/\\n/g, '\n')
+            .replace(/\\"/g, '"')
+        }
+      }
+      
       const giaMessage: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: analysis.chat_response || 'Analysis completed',
+        content: cleanContent,
         score: analysis.score, // Include score in the message
         shopping_query: analysis.shopping_query, // Include shopping query
         created_at: new Date().toISOString(),
