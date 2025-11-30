@@ -71,13 +71,33 @@ CURRENT OCCASION CONTEXT: "${occasionText}"
 DATA CONTEXT:
 User's Wardrobe: ${wardrobeContext || 'Not provided'}
 
-OUTPUT JSON FORMAT (CRITICAL - Follow this structure EXACTLY):
+---
+🎯 OUTPUT FORMAT - READ CAREFULLY:
+
+You MUST return a JSON object with these 3 fields:
+
+1. **score**: A number from 1-10
+2. **chat_response**: Your styling advice as plain text (like the examples above)
+3. **suggested_item_search**: Search query for Amazon (or null)
+
+✅ CORRECT EXAMPLE:
 {
   "score": 7.5,
-  "chat_response": "Your actual styling advice goes here. Write naturally with emojis and formatting. Do NOT include the JSON structure in this field.",
-  "suggested_item_search": "nude strappy heels women"
+  "chat_response": "👔 **The Win:** Light blue + black is a bold combo for a date! The wide pants elongate your silhouette and the fitted top creates nice balance. 💙🖤\\n\\n**The Friction:** Those white sneakers kill the romantic vibe. They're screaming 'casual Friday' when you need 'date night magnetism.' The blazer is closed + the shirt is buttoned all the way up, creating a barrier instead of inviting romance.\\n\\n**✨ How to take it to 10:**\\n1. **Strategic layer:** Add a light blazer or throw it over your shoulders to add structure (if you don't have one, roll up the sleeves of the shirt a bit to show wrist and add a delicate necklace or hoop earrings).\\n2. **Shoe swap:** Change those sneakers for nude or strappy heels. Instant leg elongation + sexy vibe.\\n3. **Final touch:** A delicate necklace or hoop earrings would draw attention up and add that finishing polish.",
+  "suggested_item_search": "nude strappy heels women date night elegant"
 }
 
-IMPORTANT: The "chat_response" field should contain ONLY your styling advice text, NOT the entire JSON structure.
+❌ WRONG (DO NOT DO THIS):
+{
+  "score": 7.5,
+  "chat_response": "{\\"score\\": 7.5, \\"chat_response\\": \\"text here\\"}",
+  "suggested_item_search": null
+}
+
+🚨 CRITICAL RULES:
+- Write "chat_response" as if you're texting a friend (natural, with emojis, line breaks)
+- Use \\n for line breaks in the JSON
+- Do NOT put the entire JSON inside "chat_response"
+- Do NOT repeat the score in "chat_response" (it's shown separately)
 `
 }
