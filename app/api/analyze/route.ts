@@ -238,14 +238,55 @@ export async function POST(request: NextRequest) {
     // Use suggested_item_search from AI if available, otherwise use extracted query
     analysis.shopping_query = analysis.suggested_item_search || shoppingQuery
 
-    // Format response for frontend
-    let chatResponse = analysis.chat_response || analysis.analysis || analysis.critique || 'Analysis completed'
+    // ===== INTELLIGENT TEXT CLEANUP FUNCTION =====
+    // This function converts the AI's raw output into beautiful, human-readable text
+    function cleanupAIResponse(rawText: string): string {
+      let cleaned = rawText
+      
+      // Step 1: If the response contains JSON structure, extract only the chat_response field
+      if (cleaned.includes('"chat_response"') || cleaned.includes("'chat_response'")) {
+        const chatResponseMatch = cleaned.match(/["']chat_response["']\s*:\s*["']([\s\S]+?)["']\s*[,}]/)
+        if (chatResponseMatch && chatResponseMatch[1]) {
+          cleaned = chatResponseMatch[1]
+        }
+      }
+      
+      // Step 2: Remove any JSON artifacts
+      cleaned = cleaned
+        .replace(/^\{.*?"chat_response"\s*:\s*"/, '')  // Remove opening JSON
+        .replace(/",?\s*"suggested_item_search".*\}$/, '')  // Remove closing JSON
+        .replace(/^["']|["']$/g, '')  // Remove surrounding quotes
+      
+      // Step 3: Convert escaped characters to actual characters
+      cleaned = cleaned
+        .replace(/\\n/g, '\n')  // Convert \n to actual newlines
+        .replace(/\\"/g, '"')   // Convert \" to "
+        .replace(/\\'/g, "'")   // Convert \' to '
+        .replace(/\\\\/g, '\\') // Convert \\ to \
+      
+      // Step 4: Remove score mentions from the text (it's shown separately)
+      cleaned = cleaned
+        .replace(/\*\*Score:\s*\d+(\.\d+)?\/10\*\*/gi, '')
+        .replace(/Score:\s*\d+(\.\d+)?\/10/gi, '')
+        .replace(/\d+(\.\d+)?\/10/g, '')
+      
+      // Step 5: Clean up extra whitespace
+      cleaned = cleaned
+        .replace(/\n{3,}/g, '\n\n')  // Max 2 consecutive newlines
+        .trim()
+      
+      return cleaned
+    }
     
-    // Clean up the response: convert literal \n to actual line breaks
-    chatResponse = chatResponse
-      .replace(/\\n/g, '\n')  // Convert \n literals to actual newlines
-      .replace(/\*\*Score:.*?\*\*/gi, '')  // Remove any "Score:" text from the response
-      .trim()
+    // Get the raw response
+    let chatResponse = analysis.chat_response || analysis.analysis || analysis.critique || analysisText
+    
+    // Apply intelligent cleanup
+    chatResponse = cleanupAIResponse(chatResponse)
+    
+    console.log('Original response length:', (analysis.chat_response || '').length)
+    console.log('Cleaned response length:', chatResponse.length)
+    console.log('Cleaned response preview:', chatResponse.substring(0, 200))
     
     const formattedAnalysis = {
       score: analysis.score || 7,
