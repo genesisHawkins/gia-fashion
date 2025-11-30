@@ -156,23 +156,23 @@ export async function POST(request: NextRequest) {
     
     const analysisText = openaiData.choices[0].message.content
     
-    // Parse JSON response from AI
-    let analysis
-    try {
-      // Try to extract JSON from the response
-      const jsonMatch = analysisText.match(/\{[\s\S]*\}/)
-      const jsonText = jsonMatch ? jsonMatch[0] : analysisText
-      analysis = JSON.parse(jsonText)
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', analysisText)
-      // Return a default analysis if parsing fails
-      analysis = {
-        score: 7,
-        critique: analysisText,
-        body_type_analysis: 'Analysis in progress',
-        missing_item_suggestion: null,
-        color_harmony: 'Analysis in progress'
-      }
+    console.log('✅ First AI returned plain text')
+    console.log('Preview:', analysisText.substring(0, 200))
+    
+    // Extract score from text (e.g., "Score: 7.5/10" or "**Score: 7.5/10**")
+    const scoreMatch = analysisText.match(/\*?\*?Score:\s*(\d+(?:\.\d+)?)\s*\/\s*10\*?\*?/i)
+    const extractedScore = scoreMatch ? parseFloat(scoreMatch[1]) : 7
+    
+    console.log('Extracted score:', extractedScore)
+    
+    // The text IS the analysis - no JSON parsing needed
+    const analysis = {
+      score: extractedScore,
+      chat_response: analysisText,
+      critique: analysisText,
+      body_type_analysis: '',
+      missing_item_suggestion: null,
+      color_harmony: ''
     }
 
     // Extract shopping suggestions from the response
@@ -238,68 +238,8 @@ export async function POST(request: NextRequest) {
     // Use suggested_item_search from AI if available, otherwise use extracted query
     analysis.shopping_query = analysis.suggested_item_search || shoppingQuery
 
-    // ===== PURE AI POWER: Second AI converts JSON to beautiful text =====
-    // NO CODE TRANSLATION. PURE AI. This is the ONLY text that goes to chat.
-    
-    console.log('🤖 STEP 1: First AI returned (raw):', analysisText.substring(0, 200))
-    
-    // STEP 2: Second AI takes the ENTIRE first AI output and converts it
-    console.log('🤖 STEP 2: Calling SECOND AI to convert to chat text...')
-    
-    let chatResponse = 'Analysis completed' // Fallback
-    
-    try {
-      const secondAIResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-          'HTTP-Referer': process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://gia-fashion.vercel.app',
-          'X-Title': 'Gia Fashion AI - Text Converter',
-        },
-        body: JSON.stringify({
-          model: 'x-ai/grok-4.1-fast:free',
-          messages: [
-            {
-              role: 'system',
-              content: `You are a text converter for a fashion chat app.
-
-Your ONLY job: Take whatever input you receive (JSON, text, anything) and convert it into clean, natural, conversational text that a human can read in a chat.
-
-Rules:
-- Write in ENGLISH only
-- Keep emojis and natural formatting
-- Make it sound like a friend texting you
-- NO JSON syntax in your output
-- NO quotes, brackets, or escape characters
-- Just pure, readable text
-
-Example input: {"score": 7, "chat_response": "text here"}
-Example output: text here (just the text, nothing else)`
-            },
-            {
-              role: 'user',
-              content: `Convert this to clean chat text:\n\n${analysisText}`
-            }
-          ],
-          max_tokens: 700,
-          temperature: 0.3,
-        }),
-      })
-      
-      if (secondAIResponse.ok) {
-        const secondAIData = await secondAIResponse.json()
-        chatResponse = secondAIData.choices[0].message.content.trim()
-        console.log('✅ SECOND AI SUCCESS - Chat text ready')
-        console.log('Preview:', chatResponse.substring(0, 150))
-      } else {
-        console.error('❌ SECOND AI FAILED')
-        chatResponse = 'Sorry, I had trouble analyzing your outfit. Please try again.'
-      }
-    } catch (error) {
-      console.error('❌ SECOND AI ERROR:', error)
-      chatResponse = 'Sorry, I had trouble analyzing your outfit. Please try again.'
-    }
+    // The AI already returned clean text - use it directly
+    let chatResponse = analysisText
     
     const formattedAnalysis = {
       score: analysis.score || 7,
