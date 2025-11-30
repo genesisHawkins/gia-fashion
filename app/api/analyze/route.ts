@@ -241,8 +241,8 @@ export async function POST(request: NextRequest) {
     // Format response for frontend
     const formattedAnalysis = {
       score: analysis.score || 7,
-      chat_response: analysis.analysis || analysis.critique || analysisText,
-      shopping_query: analysis.shopping_query,
+      chat_response: analysis.chat_response || analysis.analysis || analysis.critique || 'Analysis completed',
+      shopping_query: analysis.shopping_query || analysis.suggested_item_search,
       body_type_analysis: analysis.body_type_analysis,
       color_harmony: analysis.color_harmony,
     }
