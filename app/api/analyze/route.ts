@@ -172,7 +172,9 @@ export async function POST(request: NextRequest) {
       critique: analysisText,
       body_type_analysis: '',
       missing_item_suggestion: null,
-      color_harmony: ''
+      color_harmony: '',
+      shopping_query: null as string | null,
+      suggested_item_search: null as string | null
     }
 
     // Extract shopping suggestions from the response
