@@ -2,16 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { buildAnalysisPrompt } from '@/lib/ai-prompt'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
-
 export async function POST(request: NextRequest) {
   try {
     console.log('=== Starting analysis ===')
     console.log('API Key exists:', !!process.env.OPENAI_API_KEY)
-    console.log('API Key prefix:', process.env.OPENAI_API_KEY?.substring(0, 10))
+    console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
     
     const formData = await request.formData()
     const image = formData.get('image') as File
@@ -23,55 +18,66 @@ export async function POST(request: NextRequest) {
     console.log('Wardrobe context:', wardrobeContext ? 'Yes' : 'No')
 
     if (!image) {
+      console.error('No image provided')
       return NextResponse.json({ error: 'No image provided' }, { status: 400 })
     }
 
-    // Get current user from cookie
-    const supabaseClient = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-    
-    // For now, we'll skip auth check and use a test user ID
-    // In production, you'd want proper auth
-    const testUserId = 'test-user-' + Date.now()
-
-    // Get auth token for storage upload
+    // Get auth token
     const authHeader = request.headers.get('authorization')
     const token = authHeader?.replace('Bearer ', '')
+    console.log('Auth token present:', !!token)
     
-    // Create authenticated client for storage
-    const storageClient = token ? createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`
+    // Get user ID for storage path
+    let userId = 'anonymous-' + Date.now()
+    let publicUrl = ''
+    
+    if (token) {
+      const userSupabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          global: {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
           }
         }
+      )
+      
+      const { data: { user }, error: userError } = await userSupabase.auth.getUser()
+      
+      if (user && !userError) {
+        userId = user.id
+        console.log('User authenticated:', userId)
+        
+        // Try to upload image to Supabase Storage
+        try {
+          const fileName = `${userId}/${Date.now()}-${image.name}`
+          const { error: uploadError } = await userSupabase.storage
+            .from('outfit-images')
+            .upload(fileName, image)
+
+          if (uploadError) {
+            console.error('Upload error:', uploadError)
+            console.log('Continuing without storage upload...')
+          } else {
+            console.log('✅ Image uploaded successfully:', fileName)
+            const { data: { publicUrl: url } } = userSupabase.storage
+              .from('outfit-images')
+              .getPublicUrl(fileName)
+            publicUrl = url
+            console.log('Public URL:', publicUrl)
+          }
+        } catch (storageError) {
+          console.error('Storage error:', storageError)
+          console.log('Continuing without storage upload...')
+        }
+      } else {
+        console.log('User not authenticated or error:', userError)
       }
-    ) : supabaseClient
-
-    // Upload image to Supabase Storage
-    const fileName = `${testUserId}/${Date.now()}-${image.name}`
-    const { error: uploadError } = await storageClient.storage
-      .from('outfit-images')
-      .upload(fileName, image)
-
-    if (uploadError) {
-      console.error('Upload error:', uploadError)
-      // Continue even if upload fails, we can still analyze
     } else {
-      console.log('✅ Image uploaded successfully:', fileName)
+      console.log('No auth token provided')
     }
-
-    // Get public URL
-    const { data: { publicUrl } } = storageClient.storage
-      .from('outfit-images')
-      .getPublicUrl(fileName)
-    
-    console.log('Public URL:', publicUrl)
 
     // Convert image to base64 for OpenAI
     console.log('Converting image to base64...')
@@ -83,13 +89,16 @@ export async function POST(request: NextRequest) {
 
     // Call OpenRouter API with Grok
     console.log('Calling OpenRouter API...')
+    console.log('Model: x-ai/grok-4.1-fast:free')
+    console.log('Image data URL length:', imageDataUrl.length)
+    
     const openaiResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'HTTP-Referer': process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-        'X-Title': 'EcoStyle AI',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://gia-fashion.vercel.app',
+        'X-Title': 'Gia Fashion AI',
       },
       body: JSON.stringify({
         model: 'x-ai/grok-4.1-fast:free',
@@ -111,20 +120,39 @@ export async function POST(request: NextRequest) {
           },
         ],
         max_tokens: 1000,
+        temperature: 0.7,
       }),
     })
 
+    console.log('OpenRouter response status:', openaiResponse.status)
+
     if (!openaiResponse.ok) {
-      const errorData = await openaiResponse.json()
-      console.error('OpenRouter error:', errorData)
+      const errorText = await openaiResponse.text()
+      console.error('OpenRouter error response:', errorText)
+      let errorData
+      try {
+        errorData = JSON.parse(errorText)
+      } catch {
+        errorData = { message: errorText }
+      }
+      console.error('OpenRouter error details:', errorData)
       return NextResponse.json({ 
         error: 'AI analysis failed', 
-        details: errorData 
+        details: errorData,
+        message: 'Failed to analyze image. Please try again.'
       }, { status: 500 })
     }
 
     const openaiData = await openaiResponse.json()
-    console.log('OpenRouter response:', openaiData)
+    console.log('OpenRouter response received successfully')
+    
+    if (!openaiData.choices || !openaiData.choices[0]) {
+      console.error('Invalid OpenRouter response structure:', openaiData)
+      return NextResponse.json({ 
+        error: 'Invalid AI response',
+        message: 'Received invalid response from AI. Please try again.'
+      }, { status: 500 })
+    }
     
     const analysisText = openaiData.choices[0].message.content
     
@@ -210,18 +238,22 @@ export async function POST(request: NextRequest) {
     // Use suggested_item_search from AI if available, otherwise use extracted query
     analysis.shopping_query = analysis.suggested_item_search || shoppingQuery
 
+    // Format response for frontend
+    const formattedAnalysis = {
+      score: analysis.score || 7,
+      chat_response: analysis.analysis || analysis.critique || analysisText,
+      shopping_query: analysis.shopping_query,
+      body_type_analysis: analysis.body_type_analysis,
+      color_harmony: analysis.color_harmony,
+    }
+
+    console.log('Formatted analysis:', formattedAnalysis)
+
     // Save to database with user's auth token
-    try {
-      console.log('=== SAVING TO DATABASE ===')
-      
-      // Get auth token from request header
-      const authHeader = request.headers.get('authorization')
-      const token = authHeader?.replace('Bearer ', '')
-      
-      console.log('Auth token present:', !!token)
-      
-      if (token) {
-        // Create a Supabase client with the user's token (this bypasses RLS issues)
+    if (token && publicUrl) {
+      try {
+        console.log('=== SAVING TO DATABASE ===')
+        
         const userSupabase = createClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -234,21 +266,21 @@ export async function POST(request: NextRequest) {
           }
         )
         
-        const { data: { user } } = await userSupabase.auth.getUser()
+        const { data: { user }, error: userError } = await userSupabase.auth.getUser()
         
-        if (user) {
+        if (user && !userError) {
           console.log('✅ Real user found:', user.id)
           
           const dataToInsert = {
             user_id: user.id,
             outfit_image_url: publicUrl,
             occasion,
-            ai_score: analysis.score || 7,
-            ai_critique: analysis.analysis || analysis.critique || 'Analysis completed',
-            body_type_analysis: analysis.body_type_analysis || (analysis.tips ? analysis.tips.join(', ') : ''),
+            ai_score: formattedAnalysis.score,
+            ai_critique: formattedAnalysis.chat_response,
+            body_type_analysis: formattedAnalysis.body_type_analysis || '',
             missing_item_suggestion: analysis.missing_item_suggestion || null,
             suggested_wardrobe_items: [],
-            amazon_search_query: analysis.missing_item_suggestion || null,
+            amazon_search_query: formattedAnalysis.shopping_query || null,
           }
           
           console.log('Inserting into outfit_logs...')
@@ -264,19 +296,27 @@ export async function POST(request: NextRequest) {
             console.log('✅ Analysis saved to outfit_logs successfully!', insertedData)
           }
         } else {
-          console.log('⚠️ No user found from token')
+          console.log('⚠️ No user found from token:', userError)
         }
-      } else {
-        console.log('⚠️ No auth token, skipping database save')
+      } catch (saveError) {
+        console.error('❌ Error saving to database:', saveError)
+        // Continue even if save fails
       }
-    } catch (saveError) {
-      console.error('❌ Error saving to database:', saveError)
-      // Continue even if save fails
+    } else {
+      console.log('⚠️ Skipping database save (no token or publicUrl)')
     }
 
-    return NextResponse.json({ analysis })
+    console.log('=== Analysis completed successfully ===')
+    return NextResponse.json({ analysis: formattedAnalysis })
+    
   } catch (error) {
-    console.error('Error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('❌ Fatal error in analyze route:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.error('Error details:', errorMessage)
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      message: 'Failed to process image. Please try again.',
+      details: errorMessage
+    }, { status: 500 })
   }
 }
