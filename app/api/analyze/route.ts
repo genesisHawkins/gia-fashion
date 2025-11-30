@@ -238,55 +238,81 @@ export async function POST(request: NextRequest) {
     // Use suggested_item_search from AI if available, otherwise use extracted query
     analysis.shopping_query = analysis.suggested_item_search || shoppingQuery
 
-    // ===== INTELLIGENT TEXT CLEANUP FUNCTION =====
-    // This function converts the AI's raw output into beautiful, human-readable text
-    function cleanupAIResponse(rawText: string): string {
-      let cleaned = rawText
-      
-      // Step 1: If the response contains JSON structure, extract only the chat_response field
-      if (cleaned.includes('"chat_response"') || cleaned.includes("'chat_response'")) {
-        const chatResponseMatch = cleaned.match(/["']chat_response["']\s*:\s*["']([\s\S]+?)["']\s*[,}]/)
-        if (chatResponseMatch && chatResponseMatch[1]) {
-          cleaned = chatResponseMatch[1]
-        }
-      }
-      
-      // Step 2: Remove any JSON artifacts
-      cleaned = cleaned
-        .replace(/^\{.*?"chat_response"\s*:\s*"/, '')  // Remove opening JSON
-        .replace(/",?\s*"suggested_item_search".*\}$/, '')  // Remove closing JSON
-        .replace(/^["']|["']$/g, '')  // Remove surrounding quotes
-      
-      // Step 3: Convert escaped characters to actual characters
-      cleaned = cleaned
-        .replace(/\\n/g, '\n')  // Convert \n to actual newlines
-        .replace(/\\"/g, '"')   // Convert \" to "
-        .replace(/\\'/g, "'")   // Convert \' to '
-        .replace(/\\\\/g, '\\') // Convert \\ to \
-      
-      // Step 4: Remove score mentions from the text (it's shown separately)
-      cleaned = cleaned
-        .replace(/\*\*Score:\s*\d+(\.\d+)?\/10\*\*/gi, '')
-        .replace(/Score:\s*\d+(\.\d+)?\/10/gi, '')
-        .replace(/\d+(\.\d+)?\/10/g, '')
-      
-      // Step 5: Clean up extra whitespace
-      cleaned = cleaned
-        .replace(/\n{3,}/g, '\n\n')  // Max 2 consecutive newlines
-        .trim()
-      
-      return cleaned
-    }
+    // ===== AI POST-PROCESSING: Convert raw output to human-readable text =====
+    // If the AI returned messy JSON, we'll use a second AI call to clean it up
     
-    // Get the raw response
     let chatResponse = analysis.chat_response || analysis.analysis || analysis.critique || analysisText
     
-    // Apply intelligent cleanup
-    chatResponse = cleanupAIResponse(chatResponse)
+    console.log('Raw AI response preview:', chatResponse.substring(0, 200))
     
-    console.log('Original response length:', (analysis.chat_response || '').length)
-    console.log('Cleaned response length:', chatResponse.length)
-    console.log('Cleaned response preview:', chatResponse.substring(0, 200))
+    // Check if the response looks like JSON garbage (contains JSON structure in the text)
+    const looksLikeJSONGarbage = 
+      chatResponse.includes('"score"') || 
+      chatResponse.includes('"chat_response"') ||
+      chatResponse.includes('\\"') ||
+      chatResponse.includes('\\n\\n')
+    
+    if (looksLikeJSONGarbage) {
+      console.log('⚠️ Detected JSON garbage in response. Calling AI post-processor...')
+      
+      try {
+        // Call AI to convert the messy output into clean, conversational text
+        const cleanupResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+            'HTTP-Referer': process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://gia-fashion.vercel.app',
+            'X-Title': 'Gia Fashion AI',
+          },
+          body: JSON.stringify({
+            model: 'x-ai/grok-4.1-fast:free',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a text formatter. Your job is to extract the actual fashion advice from messy JSON output and return it as clean, natural text. Remove all JSON syntax, quotes, escape characters. Keep emojis and formatting. Return ONLY the clean text, nothing else.'
+              },
+              {
+                role: 'user',
+                content: `Clean this up and return only the fashion advice text:\n\n${chatResponse}`
+              }
+            ],
+            max_tokens: 500,
+            temperature: 0.3,
+          }),
+        })
+        
+        if (cleanupResponse.ok) {
+          const cleanupData = await cleanupResponse.json()
+          const cleanedText = cleanupData.choices[0].message.content
+          console.log('✅ AI post-processor cleaned the text successfully')
+          console.log('Cleaned preview:', cleanedText.substring(0, 200))
+          chatResponse = cleanedText
+        } else {
+          console.log('⚠️ AI post-processor failed, using manual cleanup')
+          // Fallback to manual cleanup
+          chatResponse = chatResponse
+            .replace(/\\n/g, '\n')
+            .replace(/\\"/g, '"')
+            .replace(/^["']|["']$/g, '')
+            .replace(/\{[\s\S]*?"chat_response"\s*:\s*"/, '')
+            .replace(/",?\s*"suggested_item_search".*\}$/, '')
+            .trim()
+        }
+      } catch (error) {
+        console.error('❌ AI post-processor error:', error)
+        // Fallback to manual cleanup
+        chatResponse = chatResponse
+          .replace(/\\n/g, '\n')
+          .replace(/\\"/g, '"')
+          .replace(/^["']|["']$/g, '')
+          .trim()
+      }
+    } else {
+      console.log('✅ Response looks clean, no post-processing needed')
+    }
+    
+    console.log('Final chat response length:', chatResponse.length)
     
     const formattedAnalysis = {
       score: analysis.score || 7,
