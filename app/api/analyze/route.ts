@@ -238,81 +238,78 @@ export async function POST(request: NextRequest) {
     // Use suggested_item_search from AI if available, otherwise use extracted query
     analysis.shopping_query = analysis.suggested_item_search || shoppingQuery
 
-    // ===== AI POST-PROCESSING: Convert raw output to human-readable text =====
-    // If the AI returned messy JSON, we'll use a second AI call to clean it up
+    // ===== DEDICATED AI FORMATTER: ALWAYS converts JSON to clean text =====
+    // This ALWAYS runs - no conditions. Takes any output and makes it beautiful.
     
-    let chatResponse = analysis.chat_response || analysis.analysis || analysis.critique || analysisText
+    let rawResponse = analysis.chat_response || analysis.analysis || analysis.critique || analysisText
     
-    console.log('Raw AI response preview:', chatResponse.substring(0, 200))
+    console.log('🔄 Calling dedicated AI formatter (always runs)...')
+    console.log('Raw response preview:', rawResponse.substring(0, 150))
     
-    // Check if the response looks like JSON garbage (contains JSON structure in the text)
-    const looksLikeJSONGarbage = 
-      chatResponse.includes('"score"') || 
-      chatResponse.includes('"chat_response"') ||
-      chatResponse.includes('\\"') ||
-      chatResponse.includes('\\n\\n')
+    let chatResponse = rawResponse
     
-    if (looksLikeJSONGarbage) {
-      console.log('⚠️ Detected JSON garbage in response. Calling AI post-processor...')
+    try {
+      // ALWAYS call the AI formatter to ensure clean output
+      const formatterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'HTTP-Referer': process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://gia-fashion.vercel.app',
+          'X-Title': 'Gia Fashion AI',
+        },
+        body: JSON.stringify({
+          model: 'x-ai/grok-4.1-fast:free',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a text formatter for a fashion chat app. Your ONLY job:
+
+1. Extract the fashion advice text from whatever input you receive
+2. Remove ALL JSON syntax: { } " \\ escape characters
+3. Convert \\n to actual line breaks
+4. Keep emojis, bold text (**text**), and natural formatting
+5. Write in ENGLISH only
+6. Return ONLY the clean conversational text - nothing else
+
+If you see JSON, extract the content. If you see clean text, return it as-is.`
+            },
+            {
+              role: 'user',
+              content: rawResponse
+            }
+          ],
+          max_tokens: 600,
+          temperature: 0.2,
+        }),
+      })
       
-      try {
-        // Call AI to convert the messy output into clean, conversational text
-        const cleanupResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-            'HTTP-Referer': process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://gia-fashion.vercel.app',
-            'X-Title': 'Gia Fashion AI',
-          },
-          body: JSON.stringify({
-            model: 'x-ai/grok-4.1-fast:free',
-            messages: [
-              {
-                role: 'system',
-                content: 'You are a text formatter. Your job is to extract the actual fashion advice from messy JSON output and return it as clean, natural text. Remove all JSON syntax, quotes, escape characters. Keep emojis and formatting. Return ONLY the clean text, nothing else.'
-              },
-              {
-                role: 'user',
-                content: `Clean this up and return only the fashion advice text:\n\n${chatResponse}`
-              }
-            ],
-            max_tokens: 500,
-            temperature: 0.3,
-          }),
-        })
-        
-        if (cleanupResponse.ok) {
-          const cleanupData = await cleanupResponse.json()
-          const cleanedText = cleanupData.choices[0].message.content
-          console.log('✅ AI post-processor cleaned the text successfully')
-          console.log('Cleaned preview:', cleanedText.substring(0, 200))
-          chatResponse = cleanedText
-        } else {
-          console.log('⚠️ AI post-processor failed, using manual cleanup')
-          // Fallback to manual cleanup
-          chatResponse = chatResponse
-            .replace(/\\n/g, '\n')
-            .replace(/\\"/g, '"')
-            .replace(/^["']|["']$/g, '')
-            .replace(/\{[\s\S]*?"chat_response"\s*:\s*"/, '')
-            .replace(/",?\s*"suggested_item_search".*\}$/, '')
-            .trim()
-        }
-      } catch (error) {
-        console.error('❌ AI post-processor error:', error)
-        // Fallback to manual cleanup
-        chatResponse = chatResponse
+      if (formatterResponse.ok) {
+        const formatterData = await formatterResponse.json()
+        chatResponse = formatterData.choices[0].message.content.trim()
+        console.log('✅ AI formatter succeeded')
+        console.log('Formatted preview:', chatResponse.substring(0, 150))
+      } else {
+        console.log('⚠️ AI formatter failed, using manual cleanup')
+        chatResponse = rawResponse
           .replace(/\\n/g, '\n')
           .replace(/\\"/g, '"')
-          .replace(/^["']|["']$/g, '')
+          .replace(/^["'\{]+|["'\}]+$/g, '')
+          .replace(/.*?"chat_response"\s*:\s*"/, '')
+          .replace(/",?\s*"suggested_item_search".*$/, '')
           .trim()
       }
-    } else {
-      console.log('✅ Response looks clean, no post-processing needed')
+    } catch (error) {
+      console.error('❌ AI formatter error:', error)
+      // Manual cleanup as last resort
+      chatResponse = rawResponse
+        .replace(/\\n/g, '\n')
+        .replace(/\\"/g, '"')
+        .replace(/^["'\{]+|["'\}]+$/g, '')
+        .trim()
     }
     
-    console.log('Final chat response length:', chatResponse.length)
+    console.log('✅ Final formatted response length:', chatResponse.length)
     
     const formattedAnalysis = {
       score: analysis.score || 7,

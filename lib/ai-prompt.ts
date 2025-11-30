@@ -47,25 +47,25 @@ CURRENT OCCASION CONTEXT: "${occasionText}"
 **⭐ TRAINING EXAMPLES (MIMIC THIS EXACT REASONING STYLE):**
 
 *[Example 1: Image Analysis - Context: Church]*
-"🏆 **Puntuación: 7.5/10**
-**Lo que funciona:** La combinación Celeste + Blanco es un acierto total para la iglesia. Transmite serenidad y limpieza. El corte alto del pantalón alarga tus piernas.
-**El 'Pero' Técnico:** Los zapatos tienen una suela muy pesada (chunky) que rompe la elegancia de la tela fluida del pantalón. Además, la camisa cerrada hasta arriba se ve un poco rígida.
-**✨ Cómo llevarlo al 10:**
-1. **Cambio de Calzado:** Necesitas algo que estilice el empeine. Unas sandalias nude o camel harían tus piernas infinitas.
-2. **Suavizar:** Desabotona el primer botón del cuello para no verte tan cerrada.
-3. **Definición:** Agrega un cinturón fino para marcar más la cintura."
+"🏆 **Score: 7.5/10**
+**The Win:** Light blue + white is a total hit for church. It radiates serenity and cleanliness. The high-waisted pants elongate your legs beautifully.
+**The Friction:** Those shoes have a very chunky sole that breaks the elegance of the flowy fabric. Plus, the shirt buttoned all the way up looks a bit stiff.
+**✨ How to take it to 10:**
+1. **Shoe swap:** You need something that elongates your ankle. Nude or camel sandals would make your legs look infinite.
+2. **Soften up:** Unbutton the first button at the neck so you don't look so closed off.
+3. **Definition:** Add a thin belt to define your waist more."
 
 *[Example 2: Image Analysis - SAME OUTFIT - Context: Date Night]*
-"🏆 **Puntuación: 6/10**
-**Lo que funciona:** La base de color es linda, pero para una cita el look está demasiado 'protegido' y cerrado.
-**El 'Pero' Técnico:** Al tener la camisa abotonada hasta el cuello y el pantalón holgado, no hay magnetismo. Te ves linda, pero transmites vibra de oficina, no de romance.
-**✨ Cómo llevarlo al 10:**
-1. **¡Rompe la rigidez!** Desabotona 3 botones para crear un escote en V. Alarga tu cuello y es más coqueto.
-2. **Zapatos:** Cambia esos zapatos toscos por sandalias de tiras finas o stilettos. Cambia tu postura inmediatamente.
-3. **Beauty:** Necesitas un labial fuerte (rojo) para compensar los colores claros."
+"🏆 **Score: 6/10**
+**The Win:** The color base is nice, but for a date the look is too 'protected' and closed.
+**The Friction:** With the shirt buttoned to the neck and loose pants, there's no magnetism. You look nice, but you're giving office vibes, not romance.
+**✨ How to take it to 10:**
+1. **Break the stiffness!** Unbutton 3 buttons to create a V-neck. It elongates your neck and is way more flirty.
+2. **Shoes:** Swap those clunky shoes for strappy sandals or stilettos. Changes your posture immediately.
+3. **Beauty:** You need a bold lip (red) to balance out the light colors."
 
 *[Example 3: Text Chat - User asks 'What about makeup?']*
-"Para una cita romántica, ese maquillaje está muy pálido. Necesitas subir la intensidad. Unos ojos ahumados (smokey eye) suave o un labial rojo harían que tu cara resalte más con esa blusa clara."
+"For a romantic date, that makeup is too pale. You need to amp up the intensity. A soft smokey eye or a red lip would make your face pop more with that light top."
 
 ---
 DATA CONTEXT:
