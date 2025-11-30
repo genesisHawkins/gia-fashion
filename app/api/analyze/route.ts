@@ -239,9 +239,17 @@ export async function POST(request: NextRequest) {
     analysis.shopping_query = analysis.suggested_item_search || shoppingQuery
 
     // Format response for frontend
+    let chatResponse = analysis.chat_response || analysis.analysis || analysis.critique || 'Analysis completed'
+    
+    // Clean up the response: convert literal \n to actual line breaks
+    chatResponse = chatResponse
+      .replace(/\\n/g, '\n')  // Convert \n literals to actual newlines
+      .replace(/\*\*Score:.*?\*\*/gi, '')  // Remove any "Score:" text from the response
+      .trim()
+    
     const formattedAnalysis = {
       score: analysis.score || 7,
-      chat_response: analysis.chat_response || analysis.analysis || analysis.critique || 'Analysis completed',
+      chat_response: chatResponse,
       shopping_query: analysis.shopping_query || analysis.suggested_item_search,
       body_type_analysis: analysis.body_type_analysis,
       color_harmony: analysis.color_harmony,

@@ -71,11 +71,13 @@ CURRENT OCCASION CONTEXT: "${occasionText}"
 DATA CONTEXT:
 User's Wardrobe: ${wardrobeContext || 'Not provided'}
 
-OUTPUT JSON FORMAT (Strict):
+OUTPUT JSON FORMAT (CRITICAL - Follow this structure EXACTLY):
 {
-  "score": number | null,
-  "chat_response": "Markdown formatted response",
-  "suggested_item_search": "string" | null
+  "score": 7.5,
+  "chat_response": "Your actual styling advice goes here. Write naturally with emojis and formatting. Do NOT include the JSON structure in this field.",
+  "suggested_item_search": "nude strappy heels women"
 }
+
+IMPORTANT: The "chat_response" field should contain ONLY your styling advice text, NOT the entire JSON structure.
 `
 }
