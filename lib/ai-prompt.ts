@@ -81,6 +81,6 @@ Then write your analysis naturally.
 
 If you recommend buying something, mention it naturally in your text.
 
-ALWAYS write in ENGLISH.
+ALWAYS write in ENGLISH. Never use Spanish.
 `
 }
