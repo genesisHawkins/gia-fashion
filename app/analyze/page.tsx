@@ -6,6 +6,7 @@ import AuthGuard from '@/components/AuthGuard'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import GiaAvatar from '@/components/GiaAvatar'
+import ReactMarkdown from 'react-markdown'
 
 type Message = {
   id: string
@@ -557,7 +558,9 @@ export default function AnalyzePage() {
                       <span>Score: {msg.score}/10</span>
                     </div>
                   )}
-                  <p className="text-sm leading-relaxed whitespace-pre-line">{msg.content}</p>
+                  <div className="text-sm leading-relaxed prose prose-sm max-w-none prose-p:my-2 prose-strong:text-inherit prose-strong:font-bold prose-em:text-inherit">
+                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  </div>
                 </div>
                 
                 {/* Discrete Shopping Button */}
