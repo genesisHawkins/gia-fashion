@@ -1,5 +1,5 @@
-// Grok 4.1 Fast - Free model with vision support
-export const AI_MODEL = "x-ai/grok-4.1-fast:free"
+// Grok 4.1 Fast - Paid model with vision support
+export const AI_MODEL = "x-ai/grok-4.1-fast"
 
 export async function callOpenRouter(messages: any[], options: {
   maxTokens?: number
@@ -25,7 +25,13 @@ export async function callOpenRouter(messages: any[], options: {
 
   if (!response.ok) {
     const errorText = await response.text()
-    throw new Error(`OpenRouter API error: ${errorText}`)
+    console.error('OpenRouter API error:', {
+      status: response.status,
+      statusText: response.statusText,
+      error: errorText,
+      model: AI_MODEL
+    })
+    throw new Error(`OpenRouter API error (${response.status}): ${errorText}`)
   }
 
   return response.json()
