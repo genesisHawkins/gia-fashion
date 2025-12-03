@@ -1,5 +1,5 @@
-// Amazon Nova 2 Lite - Free model
-export const AI_MODEL = "amazon/nova-2-lite-v1:free"
+// Grok 4.1 Fast - Free model with vision support
+export const AI_MODEL = "x-ai/grok-4.1-fast:free"
 
 export async function callOpenRouter(messages: any[], options: {
   maxTokens?: number
