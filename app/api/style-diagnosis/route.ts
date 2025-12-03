@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { callOpenRouter } from '@/lib/openrouter'
 
 export async function POST(request: NextRequest) {
   try {
@@ -182,38 +183,15 @@ Cross-reference measurements and photos to determine:
       }
     ]
 
-    const openaiResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'HTTP-Referer': process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-        'X-Title': 'EcoStyle AI',
-      },
-      body: JSON.stringify({
-        model: 'x-ai/grok-4.1-fast:free',
-        messages: openRouterMessages,
-        max_tokens: 1500,
-        temperature: 0.7,
-        response_format: { type: 'json_object' }
-      }),
+    const data = await callOpenRouter(openRouterMessages, {
+      maxTokens: 1500,
+      temperature: 0.7,
+      responseFormat: { type: 'json_object' }
     })
 
-    if (!openaiResponse.ok) {
-      const errorText = await openaiResponse.text()
-      console.error('OpenRouter error:', errorText)
-      console.error('OpenRouter status:', openaiResponse.status)
-      return NextResponse.json({ 
-        error: 'AI analysis failed', 
-        details: errorText,
-        status: openaiResponse.status 
-      }, { status: 500 })
-    }
-
-    const openaiData = await openaiResponse.json()
-    console.log('OpenAI raw response:', openaiData.choices[0].message.content)
+    console.log('OpenRouter raw response:', data.choices[0].message.content)
     
-    const analysisResult = JSON.parse(openaiData.choices[0].message.content)
+    const analysisResult = JSON.parse(data.choices[0].message.content || '{}')
     console.log('Parsed analysis result:', analysisResult)
 
     // Save to database (upsert with conflict resolution on user_id)

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { buildAnalysisPrompt } from '@/lib/ai-prompt'
+import { callOpenRouter, AI_MODEL } from '@/lib/openrouter'
 
 export async function POST(request: NextRequest) {
   try {
@@ -87,74 +88,40 @@ export async function POST(request: NextRequest) {
     const imageDataUrl = `data:${image.type};base64,${base64Image}`
     console.log('Image converted, size:', base64Image.length)
 
-    // Call OpenRouter API with Grok
+    // Call OpenRouter API with Amazon Nova
     console.log('Calling OpenRouter API...')
-    console.log('Model: x-ai/grok-4.1-fast:free')
+    console.log('Model:', AI_MODEL)
     console.log('Image data URL length:', imageDataUrl.length)
     
-    const openaiResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'HTTP-Referer': process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://gia-fashion.vercel.app',
-        'X-Title': 'Gia Fashion AI',
-      },
-      body: JSON.stringify({
-        model: 'x-ai/grok-4.1-fast:free',
-        messages: [
+    const data = await callOpenRouter([
+      {
+        role: 'user',
+        content: [
           {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: buildAnalysisPrompt(occasion, wardrobeContext || undefined),
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: imageDataUrl,
-                },
-              },
-            ],
+            type: 'text',
+            text: buildAnalysisPrompt(occasion, wardrobeContext || undefined),
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: imageDataUrl,
+            },
           },
         ],
-        max_tokens: 1000,
-        temperature: 0.7,
-      }),
-    })
+      },
+    ], { maxTokens: 1000, temperature: 0.7 })
 
-    console.log('OpenRouter response status:', openaiResponse.status)
-
-    if (!openaiResponse.ok) {
-      const errorText = await openaiResponse.text()
-      console.error('OpenRouter error response:', errorText)
-      let errorData
-      try {
-        errorData = JSON.parse(errorText)
-      } catch {
-        errorData = { message: errorText }
-      }
-      console.error('OpenRouter error details:', errorData)
-      return NextResponse.json({ 
-        error: 'AI analysis failed', 
-        details: errorData,
-        message: 'Failed to analyze image. Please try again.'
-      }, { status: 500 })
-    }
-
-    const openaiData = await openaiResponse.json()
     console.log('OpenRouter response received successfully')
     
-    if (!openaiData.choices || !openaiData.choices[0]) {
-      console.error('Invalid OpenRouter response structure:', openaiData)
+    if (!data.choices || !data.choices[0]) {
+      console.error('Invalid OpenRouter response structure:', data)
       return NextResponse.json({ 
         error: 'Invalid AI response',
         message: 'Received invalid response from AI. Please try again.'
       }, { status: 500 })
     }
     
-    const analysisText = openaiData.choices[0].message.content
+    const analysisText = data.choices[0].message.content || ''
     
     console.log('✅ First AI returned plain text')
     console.log('Preview:', analysisText.substring(0, 200))

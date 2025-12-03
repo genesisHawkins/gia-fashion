@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@openrouter/sdk": "^0.2.9",
     "@supabase/supabase-js": "^2.39.0",
     "lucide-react": "^0.294.0",
     "next": "^14.0.0",

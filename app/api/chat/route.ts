@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { callOpenRouter, AI_MODEL } from '@/lib/openrouter'
 
 export async function POST(request: NextRequest) {
   try {
@@ -384,57 +385,23 @@ Respond in 1-4 lines. Keep it natural. ALWAYS IN ENGLISH.`
 
     // Call OpenRouter API with vision model
     console.log('Calling OpenRouter API...')
-    console.log('Model: x-ai/grok-4.1-fast:free (with vision)')
+    console.log('Model:', AI_MODEL, '(with vision)')
     console.log('Has image:', !!imageDataUrl)
     console.log('Messages count:', openRouterMessages.length)
     
-    const openaiResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'HTTP-Referer': process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-        'X-Title': 'EcoStyle AI',
-      },
-      body: JSON.stringify({
-        model: 'x-ai/grok-4.1-fast:free',
-        messages: openRouterMessages,
-        max_tokens: 800,
-        temperature: 0.7,
-      }),
-    })
+    const data = await callOpenRouter(openRouterMessages, { maxTokens: 800, temperature: 0.7 })
 
-    console.log('OpenRouter response status:', openaiResponse.status)
-
-    if (!openaiResponse.ok) {
-      const errorText = await openaiResponse.text()
-      console.error('OpenRouter error response:', errorText)
-      let errorData
-      try {
-        errorData = JSON.parse(errorText)
-      } catch {
-        errorData = { message: errorText }
-      }
-      console.error('OpenRouter error details:', errorData)
-      return NextResponse.json({ 
-        error: 'AI chat failed', 
-        details: errorData 
-      }, { status: 500 })
-    }
-
-    const openaiData = await openaiResponse.json()
     console.log('OpenRouter response received')
-    console.log('Full response:', JSON.stringify(openaiData, null, 2))
     
-    if (!openaiData.choices || !openaiData.choices[0] || !openaiData.choices[0].message) {
-      console.error('Invalid response structure:', openaiData)
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('Invalid response structure:', data)
       return NextResponse.json({ 
         error: 'Invalid AI response', 
-        details: openaiData 
+        details: data 
       }, { status: 500 })
     }
     
-    const aiResponse = openaiData.choices[0].message.content
+    const aiResponse = data.choices[0].message.content || ''
     console.log('AI response:', aiResponse.substring(0, 100) + '...')
 
     // Extract shopping suggestions from the response
