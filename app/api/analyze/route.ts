@@ -147,12 +147,12 @@ export async function POST(request: NextRequest) {
     // Extract shopping suggestions from the response
     // IMPORTANT: Only extract the FIRST recommendation when multiple items are mentioned
     const clothingPatterns = [
-      // Action verbs with items - captures "swap/change X for Y" patterns
-      /(?:swap|change|replace)\s+(?:the|those|your)?\s*([a-z\s-]+(?:shirt|top|blouse|sweater|cardigan|pants|jeans|skirt|dress|shoes|sneakers|heels|boots|flats|sandals|jacket|blazer|coat))\s+for\s+(?:a|an|some)?\s*([a-z\s-]+(?:shirt|top|blouse|sweater|cardigan|pants|jeans|skirt|dress|shoes|sneakers|heels|boots|flats|sandals|jacket|blazer|coat|one))/gi,
+      // Action verbs with items - captures "swap/change X for Y" patterns (PRIORITIZE THIS - it captures recommendations)
+      /(?:swap|change|replace|cambia|cambiar)\s+(?:the|those|your|el|la|los|las|tu|tus)?\s*([a-z\sáéíóúñ-]+(?:collar|necklace|earrings|aros|aretes|pendientes|pulsera|bracelet|anillo|ring|shirt|top|blouse|sweater|cardigan|pants|jeans|skirt|dress|shoes|sneakers|heels|boots|flats|sandals|jacket|blazer|coat|abrigo|chaqueta|zapatos|pantalones|falda|vestido))\s+(?:for|por|with|con)\s+(?:a|an|some|unos|unas|un|una)?\s*([a-z\sáéíóúñ-]+(?:collar|necklace|earrings|aros|aretes|pendientes|pulsera|bracelet|anillo|ring|shirt|top|blouse|sweater|cardigan|pants|jeans|skirt|dress|shoes|sneakers|heels|boots|flats|sandals|jacket|blazer|coat|one|abrigo|chaqueta|zapatos|pantalones|falda|vestido))/gi,
       // Specific items with descriptors
-      /(?:try|wear|add|get|use|pair with|go for|opt for|choose)\s+(?:a|an|some|the)?\s*([a-z\s-]+(?:blazer|jacket|shoes|heels|flats|sandals|boots|belt|pants|skirt|dress|top|shirt|blouse|sweater|cardigan|coat|jeans|trousers|bag|purse|scarf|hat|necklace|earrings|bracelet|accessories))/gi,
+      /(?:try|wear|add|get|use|pair with|go for|opt for|choose|intenta|prueba|usa|agrega)\s+(?:a|an|some|the|unos|unas|un|una)?\s*([a-z\sáéíóúñ-]+(?:collar|necklace|earrings|aros|aretes|pendientes|pulsera|bracelet|anillo|ring|blazer|jacket|shoes|heels|flats|sandals|boots|belt|pants|skirt|dress|top|shirt|blouse|sweater|cardigan|coat|jeans|trousers|bag|purse|scarf|hat|accessories|abrigo|chaqueta|zapatos|pantalones|falda|vestido))/gi,
       // Direct mentions with adjectives
-      /(?:nude|black|white|red|blue|navy|beige|brown|leather|structured|fitted|wide|slim|high-waisted|cropped|long|short|midi|maxi|ankle|knee|pointed|round|square|metallic|gold|silver|strappy)\s+([a-z\s-]+(?:blazer|jacket|shoes|heels|flats|sandals|boots|belt|pants|skirt|dress|top|shirt|blouse|sweater|cardigan|coat|jeans|trousers|bag|purse|scarf|hat|necklace|earrings|bracelet))/gi
+      /(?:nude|black|white|red|blue|navy|beige|brown|leather|structured|fitted|wide|slim|high-waisted|cropped|long|short|midi|maxi|ankle|knee|pointed|round|square|metallic|gold|silver|strappy|dorado|plateado|negro|blanco|rojo|azul)\s+([a-z\sáéíóúñ-]+(?:collar|necklace|earrings|aros|aretes|pendientes|pulsera|bracelet|anillo|ring|blazer|jacket|shoes|heels|flats|sandals|boots|belt|pants|skirt|dress|top|shirt|blouse|sweater|cardigan|coat|jeans|trousers|bag|purse|scarf|hat|abrigo|chaqueta|zapatos|pantalones|falda|vestido))/gi
     ]
     
     let shoppingQuery = null
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
         // For "swap X for Y" pattern, use the Y (what to get)
         if (match[2]) {
           shoppingQuery = match[2]
-            .replace(/one|a |an |some |the /gi, '')
+            .replace(/one|a |an |some |the |unos |unas |un |una |el |la |los |las /gi, '')
             .replace(/[.,!?()]/g, '')
             .trim()
           console.log('Shopping query detected (swap pattern):', shoppingQuery)
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
         } else if (match[1]) {
           // For other patterns, clean up the matched text
           shoppingQuery = match[0]
-            .replace(/try|wear|add|get|use|pair with|go for|opt for|choose|swap|change|replace|for|a |an |some |the /gi, '')
+            .replace(/try|wear|add|get|use|pair with|go for|opt for|choose|swap|change|replace|for|por|con|intenta|prueba|usa|agrega|cambia|cambiar|a |an |some |the |unos |unas |un |una |el |la |los |las /gi, '')
             .replace(/[.,!?()]/g, '')
             .trim()
           console.log('Shopping query detected:', shoppingQuery)
@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
     
     // If no specific pattern matched, look for general clothing keywords (first occurrence only)
     if (!shoppingQuery) {
-      const clothingKeywords = ['blazer', 'jacket', 'shirt', 'top', 'blouse', 'sweater', 'shoes', 'heels', 'boots', 'belt', 'pants', 'skirt', 'dress', 'cardigan', 'coat', 'jeans', 'sandals', 'flats', 'bag', 'scarf', 'necklace', 'earrings']
+      const clothingKeywords = ['earrings', 'aros', 'aretes', 'necklace', 'collar', 'bracelet', 'pulsera', 'ring', 'anillo', 'blazer', 'jacket', 'shirt', 'top', 'blouse', 'sweater', 'shoes', 'heels', 'boots', 'belt', 'pants', 'skirt', 'dress', 'cardigan', 'coat', 'jeans', 'sandals', 'flats', 'bag', 'scarf']
       const lowerResponse = analysisText.toLowerCase()
       
       for (const keyword of clothingKeywords) {
